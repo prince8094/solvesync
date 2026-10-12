@@ -1,0 +1,83 @@
+{
+  "manifest_version": 3,
+  "name": "SolveSync",
+  "version": "2.0.0",
+  "description": "Solve once. Track everywhere. Automatically log your solved coding problems to your own Google Sheet.",
+  "minimum_chrome_version": "111",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsR8lcUWQRKtvAopOsBs7lcF3xRz72fsJo1hON0tpRDVauKaRZi976rpESTZ3kXAtbwAkYHKng9uDKqqpUjhznTCNWHv3fou+OSwNGOYP6xpvXhW31nXNweOPYUGlnxZgjqxa/0Y81bdXBkD2Jo7r4/tvm1fnI0bsS610LrPK9w+JXQiT2w6FDq/hGYl1/Z35jAZ0OSUlNYFlKHCPKqIFs5Rq4Z+eHUxAGWfd4iRX0vXzTjObGg/obqNVjcsFR1tjp7sgIA1ix5diqI643x8wO8rVBOYHNovUiWBx6KVaQKKxmmKlyh9G3l7hcuVZwdYEeOkaNw9YgeYA9Fvti9dsWQIDAQAB",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "SolveSync",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "options_page": "options/options.html",
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "oauth2": {
+    "client_id": "878614410516-ec37fmcpuopi3o5efaql1nushh4gdcvq.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/spreadsheets"]
+  },
+  "permissions": ["identity", "storage", "alarms", "notifications", "activeTab"],
+  "host_permissions": [
+    "https://sheets.googleapis.com/*",
+    "https://oauth2.googleapis.com/*",
+    "https://codeforces.com/*",
+    "https://kenkoooo.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://leetcode.com/*"],
+      "js": ["content/net-core.js", "content/leetcode-hook.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://leetcode.com/*"],
+      "js": ["content/common.js", "content/leetcode.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://www.hackerrank.com/*"],
+      "js": ["content/net-core.js", "content/hackerrank-hook.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://www.hackerrank.com/*"],
+      "js": ["content/common.js", "content/hackerrank.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://codeforces.com/contest/*/my",
+        "https://codeforces.com/contest/*/status*",
+        "https://codeforces.com/problemset/status*",
+        "https://codeforces.com/submissions/*"
+      ],
+      "js": ["content/common.js", "content/codeforces.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://atcoder.jp/contests/*/submissions/*"],
+      "js": ["content/common.js", "content/atcoder.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.geeksforgeeks.org/problems/*",
+        "https://practice.geeksforgeeks.org/problems/*"
+      ],
+      "js": ["content/common.js", "content/gfg.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
