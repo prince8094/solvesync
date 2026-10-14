@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SolveSync — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main>
+    <header>
+      <img src="../icons/icon48.png" width="40" height="40" alt="">
+      <div>
+        <h1>SolveSync</h1>
+        <p>Solve once. Track everywhere.</p>
+      </div>
+    </header>
+
+    <div id="devWarn" class="card warn" hidden>
+      <h2>⚠ One-time developer setup needed</h2>
+      <p class="hint">This copy of SolveSync doesn’t have a Google OAuth client ID yet, so Google sign-in can’t start. Follow <b>docs/GOOGLE_SETUP.md</b> (about 10 minutes), paste the client ID into <code>manifest.json</code>, then reload the extension. People who install the finished extension never see this.</p>
+    </div>
+
+    <div class="card">
+      <h2>1 · Sign in with Google</h2>
+      <p class="hint">SolveSync only writes to the spreadsheet you choose in step 2.</p>
+      <div class="actions">
+        <button id="signin" class="btn primary">Sign in with Google</button>
+        <button id="signout" class="btn" hidden>Disconnect Google</button>
+        <span id="authStatus" class="result"></span>
+      </div>
+      <details id="diag" class="diag">
+        <summary>Having trouble signing in? (Error 400 / invalid_request)</summary>
+        <p class="hint">In Google Cloud Console → <b>APIs &amp; Services → Credentials</b>, open your OAuth client. It must be of type <b>Chrome Extension</b>, and its <b>Item ID</b> must be exactly:</p>
+        <p><code id="diagExt">…</code> <button id="copyExt" class="btn small" type="button">Copy</button></p>
+        <p id="diagExtNote" class="hint" hidden></p>
+        <p class="hint">Client ID this extension is using (from <code>manifest.json</code>):</p>
+        <p><code id="diagClient">…</code></p>
+        <p class="hint">Also check: the Google Sheets API is enabled in the <i>same</i> project, your Gmail is listed under <b>Test users</b> on the consent screen, and you reloaded the extension after editing <code>manifest.json</code>. On Google’s error page, the <b>error details</b> link states the exact reason.</p>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>2 · Choose your spreadsheet</h2>
+      <div id="connected" class="connected" hidden>
+        <span>✅ Connected to <b id="connectedTitle"></b></span>
+        <a id="connectedLink" href="#" target="_blank" rel="noopener">Open sheet ↗</a>
+      </div>
+
+      <label for="sheetLink">Google Sheets link or spreadsheet ID</label>
+      <input id="sheetLink" type="text" placeholder="https://docs.google.com/spreadsheets/d/…  or the ID" autocomplete="off" spellcheck="false">
+      <div class="actions">
+        <button id="connect" class="btn primary">Connect sheet</button>
+        <span class="or">or</span>
+        <button id="create" class="btn">Create a new sheet for me</button>
+      </div>
+      <span id="sheetResult" class="result block"></span>
+      <p class="hint">SolveSync adds a tab called <b>DSA Tracker</b> with the columns Date · Platform · Problem · Link · Topics · Approach · Difficulty. Your other tabs are never touched. The Google account you signed in with needs edit access to the sheet.</p>
+    </div>
+
+    <div class="card">
+      <h2>3 · Preferences</h2>
+      <label class="check"><input id="askApproach" type="checkbox"> Ask for my approach after each solved problem</label>
+      <label class="check"><input id="notify" type="checkbox"> Also show a desktop notification when a problem is recorded</label>
+      <span id="prefResult" class="result block"></span>
+    </div>
+
+    <p class="foot">
+      Automatic: LeetCode · Codeforces* · AtCoder* · HackerRank* · GeeksforGeeks* &nbsp;|&nbsp;
+      Any other site (e.g. HackerEarth): click the SolveSync icon → <b>Add current problem</b>.<br>
+      *experimental — the “Sync to Sheet” button on those sites is the safety net.
+    </p>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>

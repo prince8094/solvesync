@@ -1,0 +1,34 @@
+:root { --bg:#0f172a; --card:#1e293b; --line:#334155; --text:#f1f5f9; --muted:#94a3b8; --accent:#6366f1; --ok:#34d399; --err:#f87171; --warn:#fbbf24; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 640px; margin: 0 auto; padding: 32px 20px 48px; }
+header { display: flex; gap: 14px; align-items: center; margin-bottom: 24px; }
+h1 { margin: 0; font-size: 24px; }
+header p { margin: 0; color: var(--muted); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; }
+.card.warn { border-color: #78350f; background: #2a1d0a; }
+h2 { margin: 0 0 4px; font-size: 15px; }
+.hint { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+code { background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+label { display: block; margin-top: 12px; font-weight: 500; }
+input[type=url], input[type=text] { width: 100%; margin-top: 6px; padding: 9px 11px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+input:focus { outline: none; border-color: var(--accent); }
+label.check { display: flex; gap: 10px; align-items: center; font-weight: 400; cursor: pointer; }
+.actions { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+.or { color: var(--muted); }
+.btn { border: 1px solid var(--line); background: var(--bg); color: var(--text); padding: 9px 16px; border-radius: 8px; font: inherit; cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { background: #4f46e5; }
+.btn:disabled { opacity: .5; cursor: default; }
+.result { font-size: 13px; }
+.result.block { display: block; margin-top: 10px; }
+.result.ok { color: var(--ok); } .result.err { color: var(--err); }
+.connected { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--bg); border: 1px solid #065f46; border-radius: 8px; padding: 9px 12px; margin: 8px 0 4px; }
+.connected a { color: #a5b4fc; text-decoration: none; white-space: nowrap; }
+.diag { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+.diag summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+.diag p { margin: 8px 0 0; }
+.diag code { word-break: break-all; user-select: all; }
+.btn.small { padding: 3px 10px; font-size: 12px; margin-left: 6px; }
+.foot { color: var(--muted); font-size: 12px; margin-top: 24px; line-height: 1.7; }
