@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SolveSync</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img src="../icons/icon48.png" width="28" height="28" alt="">
+      <div>
+        <h1>SolveSync</h1>
+        <p>Solve once. Track everywhere.</p>
+      </div>
+    </div>
+    <span id="badge" class="badge">…</span>
+  </header>
+
+  <!-- ============ main dashboard ============ -->
+  <div id="viewMain">
+    <section id="notice" class="notice" hidden></section>
+
+    <section class="grid">
+      <div class="stat"><span id="today" class="num">0</span><span class="lbl">Today</span></div>
+      <div class="stat"><span id="month" class="num">0</span><span class="lbl">This month</span></div>
+      <div class="stat"><span id="streak" class="num">0</span><span class="lbl">Day streak</span></div>
+      <div class="stat"><span id="total" class="num">0</span><span class="lbl">Total</span></div>
+    </section>
+
+    <section>
+      <h2>Last 7 days</h2>
+      <div id="week" class="week"></div>
+    </section>
+
+    <section>
+      <h2>Difficulty</h2>
+      <div id="difficulty" class="bars"></div>
+    </section>
+
+    <section>
+      <h2>Platforms</h2>
+      <div id="platforms" class="bars"></div>
+    </section>
+
+    <section>
+      <h2>Top topics</h2>
+      <div id="topics" class="bars"></div>
+    </section>
+
+    <section>
+      <h2>Last problem</h2>
+      <div id="last" class="last">—</div>
+    </section>
+
+    <footer>
+      <button id="addBtn" class="btn primary wide">＋ Add current problem</button>
+    </footer>
+    <footer>
+      <button id="openSheet" class="btn">Open Sheet</button>
+      <button id="settings" class="btn">Settings</button>
+      <button id="refresh" class="btn icon" title="Rebuild stats from your sheet">↻</button>
+    </footer>
+  </div>
+
+  <!-- ============ add any problem manually ============ -->
+  <div id="viewAdd" hidden>
+    <h2 class="big">Add this problem to your sheet</h2>
+    <p id="addHint" class="hint">Works on any website — useful for platforms without automatic detection.</p>
+
+    <label for="fProblem">Problem</label>
+    <input id="fProblem" type="text" maxlength="200">
+
+    <label for="fLink">Link</label>
+    <input id="fLink" type="url">
+
+    <div class="two">
+      <div>
+        <label for="fPlatform">Platform</label>
+        <input id="fPlatform" type="text" maxlength="40">
+      </div>
+      <div>
+        <label for="fDifficulty">Difficulty</label>
+        <input id="fDifficulty" type="text" list="diffs" maxlength="20" placeholder="Easy / Medium / Hard">
+        <datalist id="diffs"><option value="Easy"><option value="Medium"><option value="Hard"></datalist>
+      </div>
+    </div>
+
+    <label for="fTopics">Topics <span class="muted">(comma-separated)</span></label>
+    <input id="fTopics" type="text" maxlength="200" placeholder="Array, Hash Table">
+
+    <label for="fApproach">Approach <span class="muted">(optional)</span></label>
+    <textarea id="fApproach" maxlength="500" placeholder="Key idea, complexity, mistakes…"></textarea>
+
+    <div id="addResult" class="addResult"></div>
+
+    <footer>
+      <button id="addCancel" class="btn">Back</button>
+      <button id="addSave" class="btn primary">Add to sheet</button>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
