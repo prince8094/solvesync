@@ -20,22 +20,36 @@
       <p class="hint">This copy of SolveSync doesn’t have a Google OAuth client ID yet, so Google sign-in can’t start. Follow <b>docs/GOOGLE_SETUP.md</b> (about 10 minutes), paste the client ID into <code>manifest.json</code>, then reload the extension. People who install the finished extension never see this.</p>
     </div>
 
+    <div id="webWarn" class="card warn" hidden>
+      <h2>⚠ One-time developer setup needed for this browser</h2>
+      <p class="hint">Brave, Edge, Opera and Vivaldi don’t have Chrome’s built-in Google sign-in, so SolveSync uses a second sign-in method that needs a <b>Web application</b> OAuth client. Follow <b>docs/GOOGLE_SETUP.md, section 7</b>, paste its client ID into <code>background/config.js</code> (<code>WEB_CLIENT_ID</code>), then reload the extension. People who install the finished extension never see this.</p>
+    </div>
+
     <div class="card">
       <h2>1 · Sign in with Google</h2>
       <p class="hint">SolveSync only writes to the spreadsheet you choose in step 2.</p>
+      <p id="braveNote" class="hint" hidden></p>
       <div class="actions">
         <button id="signin" class="btn primary">Sign in with Google</button>
+        <button id="signinAlt" class="btn link" type="button" title="Use this if the normal button shows “Access blocked” or does nothing">Brave, Edge, Opera or Vivaldi? Use this sign-in instead</button>
         <button id="signout" class="btn" hidden>Disconnect Google</button>
         <span id="authStatus" class="result"></span>
       </div>
       <details id="diag" class="diag">
         <summary>Having trouble signing in? (Error 400 / invalid_request)</summary>
-        <p class="hint">In Google Cloud Console → <b>APIs &amp; Services → Credentials</b>, open your OAuth client. It must be of type <b>Chrome Extension</b>, and its <b>Item ID</b> must be exactly:</p>
+        <p class="hint">Signing in with: <b id="diagMode">…</b></p>
+
+        <p class="hint"><b>Google Chrome</b> (built-in sign-in): in Google Cloud Console → <b>APIs &amp; Services → Credentials</b>, your OAuth client must be of type <b>Chrome Extension</b> and its <b>Item ID</b> must be exactly:</p>
         <p><code id="diagExt">…</code> <button id="copyExt" class="btn small" type="button">Copy</button></p>
         <p id="diagExtNote" class="hint" hidden></p>
-        <p class="hint">Client ID this extension is using (from <code>manifest.json</code>):</p>
+        <p class="hint">Client ID used for Chrome (from <code>manifest.json</code>):</p>
         <p><code id="diagClient">…</code></p>
-        <p class="hint">Also check: the Google Sheets API is enabled in the <i>same</i> project, your Gmail is listed under <b>Test users</b> on the consent screen, and you reloaded the extension after editing <code>manifest.json</code>. On Google’s error page, the <b>error details</b> link states the exact reason.</p>
+
+        <p class="hint"><b>Brave, Edge, Opera, Vivaldi</b> (browser-independent sign-in): you need a second OAuth client of type <b>Web application</b> with this exact <b>Authorized redirect URI</b>:</p>
+        <p><code id="diagRedirect">…</code> <button id="copyRedirect" class="btn small" type="button">Copy</button></p>
+        <p class="hint">Web client configured in <code>background/config.js</code>: <b id="diagWeb">…</b></p>
+
+        <p class="hint">Also check: the Google Sheets API is enabled in the <i>same</i> project, your Gmail is listed under <b>Test users</b> on the consent screen, and you reloaded the extension after editing any file. On Google’s error page, the <b>error details</b> link states the exact reason.</p>
       </details>
     </div>
 
