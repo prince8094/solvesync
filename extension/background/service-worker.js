@@ -6,7 +6,7 @@
  * - writes rows to the user's Google Sheet (see sheets.js)
  * - if that fails (offline, not signed in) keeps the record in a queue and retries every minute
  */
-importScripts('sheets.js');
+importScripts('config.js', 'sheets.js');
 
 const DEFAULTS = { sheetId: '', sheetTitle: '', sheetUrl: '', askApproach: true, notify: false };
 const HISTORY_CAP = 3000;
@@ -266,12 +266,25 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           signedIn = true;
         } catch (_) {}
         const oauth = chrome.runtime.getManifest().oauth2 || {};
-        return { ok: true, signedIn, devSetupNeeded: devSetupNeeded(), extensionId: chrome.runtime.id, clientId: oauth.client_id || '' };
+        return {
+          ok: true,
+          signedIn,
+          mode: await getAuthMode(),
+          devSetupNeeded: devSetupNeeded(),
+          webConfigured: !!WEB_CLIENT_ID,
+          redirectUri: chrome.identity.getRedirectURL ? chrome.identity.getRedirectURL() : '',
+          extensionId: chrome.runtime.id,
+          clientId: oauth.client_id || ''
+        };
       }
-      case 'AUTH_SIGNIN':
-        if (devSetupNeeded()) return { ok: false, error: 'This build has no Google OAuth client ID yet. See docs/GOOGLE_SETUP.md.' };
-        await rawToken(true);
+      case 'AUTH_SIGNIN': {
+        // 'web' = browser-independent sign-in (Brave, Edge, Opera, Vivaldi, Chrome); default = Chrome's built-in one.
+        const method = msg.method === 'web' ? 'web' : 'chrome';
+        if (method === 'web' && !WEB_CLIENT_ID) return { ok: false, error: WEB_NOT_CONFIGURED };
+        if (method === 'chrome' && devSetupNeeded()) return { ok: false, error: 'This build has no Google OAuth client ID yet. See docs/GOOGLE_SETUP.md.' };
+        await signIn(method);
         return { ok: true };
+      }
       case 'AUTH_SIGNOUT':
         await signOut();
         return { ok: true };
