@@ -22,7 +22,30 @@ class ApiError extends Error {
 }
 
 // ---------------------------------------------------------------- auth
-function rawToken(interactive) {
+/*
+ * Two sign-in methods; both end up as a plain OAuth access token for the Sheets scope.
+ *
+ *  'chrome'  chrome.identity.getAuthToken. Google Chrome only (it needs Chrome's built-in Google
+ *            sign-in). Uses the "Chrome Extension" OAuth client from manifest.json.
+ *  'web'     chrome.identity.launchWebAuthFlow. Works in Brave, Edge, Opera, Vivaldi and Chrome.
+ *            Uses a "Web application" OAuth client (WEB_CLIENT_ID in config.js) whose redirect URI is
+ *            chrome.identity.getRedirectURL(). Tokens last about an hour and are renewed silently when
+ *            Google still has a session; otherwise the user signs in again from Settings.
+ *
+ * The method in use is remembered in chrome.storage.local ("authMode").
+ */
+const SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
+const WEB_NOT_CONFIGURED =
+  'This build has no Web OAuth client ID yet (needed for Brave, Edge, Opera and Vivaldi). See docs/GOOGLE_SETUP.md, section 7.';
+const WEB_EXPIRED = 'Google sign-in expired. Open SolveSync settings and sign in again.';
+
+async function getAuthMode() {
+  const { authMode } = await chrome.storage.local.get({ authMode: 'chrome' });
+  return authMode === 'web' ? 'web' : 'chrome';
+}
+
+// ---- method 1: Chrome's built-in sign-in
+function chromeToken(interactive) {
   return new Promise((resolve, reject) => {
     const fail = (m) => reject(new ApiError(m, true));
     try {
@@ -43,16 +66,112 @@ function rawToken(interactive) {
   });
 }
 
-const removeToken = (token) => new Promise((r) => chrome.identity.removeCachedAuthToken({ token }, () => r()));
+// ---- method 2: browser-independent OAuth (implicit flow in an auth window)
+function launchFlow(url, interactive) {
+  return new Promise((resolve, reject) => {
+    const fail = (m) => reject(new ApiError(m, true));
+    try {
+      chrome.identity.launchWebAuthFlow({ url, interactive }, (resp) => {
+        const err = chrome.runtime.lastError;
+        if (err || !resp) {
+          fail(interactive ? (err && err.message) || 'Sign-in was cancelled.' : WEB_EXPIRED);
+        } else resolve(resp);
+      });
+    } catch (e) {
+      fail('Google sign-in is unavailable: ' + e.message);
+    }
+  });
+}
 
-async function signOut() {
-  let token;
-  try {
-    token = await rawToken(false);
-  } catch (_) {
+let webSilent = null; // one shared silent renewal at a time
+async function webToken(interactive) {
+  const { webToken: cached } = await chrome.storage.local.get('webToken');
+  if (cached && cached.token && cached.exp > Date.now()) return cached.token;
+  if (!WEB_CLIENT_ID) throw new ApiError(WEB_NOT_CONFIGURED, true);
+  if (!interactive && webSilent) return webSilent;
+
+  const run = async () => {
+    const state = crypto.randomUUID();
+    const params = new URLSearchParams({
+      client_id: WEB_CLIENT_ID,
+      response_type: 'token',
+      redirect_uri: chrome.identity.getRedirectURL(),
+      scope: SHEETS_SCOPE,
+      state,
+      prompt: interactive ? 'select_account' : 'none'
+    });
+    const resp = await launchFlow('https://accounts.google.com/o/oauth2/v2/auth?' + params.toString(), interactive);
+    const q = new URLSearchParams(new URL(resp).hash.replace(/^#/, ''));
+
+    const error = q.get('error');
+    if (error) {
+      throw new ApiError(
+        interactive
+          ? error === 'access_denied'
+            ? 'Sign-in was cancelled or access was denied.'
+            : `Google returned "${error}". Check the OAuth client and redirect URI (see Settings → Having trouble signing in?).`
+          : WEB_EXPIRED,
+        true
+      );
+    }
+    if (q.get('state') !== state) throw new ApiError('Sign-in response did not match the request. Please try again.', true);
+    const token = q.get('access_token');
+    if (!token) throw new ApiError('Google did not return an access token.', true);
+
+    const ttl = Number(q.get('expires_in')) || 3600;
+    await chrome.storage.local.set({ webToken: { token, exp: Date.now() + ttl * 1000 - 120000 } });
+    return token;
+  };
+
+  if (interactive) return run();
+  webSilent = run().finally(() => {
+    webSilent = null;
+  });
+  return webSilent;
+}
+
+// ---- public auth API used by the rest of the extension
+async function rawToken(interactive) {
+  return (await getAuthMode()) === 'web' ? webToken(interactive) : chromeToken(interactive);
+}
+
+async function removeToken(token) {
+  if ((await getAuthMode()) === 'web') {
+    await chrome.storage.local.remove('webToken');
     return;
   }
-  await removeToken(token);
+  await new Promise((r) => chrome.identity.removeCachedAuthToken({ token }, () => r()));
+}
+
+/** Interactive sign-in. method: 'chrome' | 'web'. The method is remembered only if sign-in succeeds. */
+async function signIn(method) {
+  if (method === 'web') {
+    await chrome.storage.local.remove('webToken'); // explicit sign-in: always show Google's account picker
+    await webToken(true);
+    await chrome.storage.local.set({ authMode: 'web' });
+  } else {
+    await chromeToken(true);
+    await chrome.storage.local.set({ authMode: 'chrome' });
+    await chrome.storage.local.remove('webToken');
+  }
+}
+
+async function signOut() {
+  const mode = await getAuthMode();
+  let token = '';
+  if (mode === 'web') {
+    const { webToken: cached } = await chrome.storage.local.get('webToken');
+    token = (cached && cached.token) || '';
+    await chrome.storage.local.remove('webToken');
+  } else {
+    try {
+      token = await chromeToken(false);
+    } catch (_) {
+      return;
+    }
+    await new Promise((r) => chrome.identity.removeCachedAuthToken({ token }, () => r()));
+  }
+  if (!token) return;
   try {
     await fetch('https://oauth2.googleapis.com/revoke?token=' + encodeURIComponent(token), { method: 'POST' });
   } catch (_) {
