@@ -2,19 +2,38 @@ const $ = (id) => document.getElementById(id);
 const DEFAULTS = { sheetId: '', sheetTitle: '', sheetUrl: '', askApproach: true, notify: false };
 const ask = (m) => chrome.runtime.sendMessage(m);
 
+// The ID that manifest.json's "key" produces. If the extension shows a different ID, the key isn't in effect.
+const PINNED_EXTENSION_ID = 'piciopmfaoeheehnlnoomkgfdbcgoijb';
+
+let browserName = ''; // 'Brave' | 'Edge' | 'Opera' | 'Vivaldi' | '' (Chrome or unknown)
+let webPreferred = false; // true => use the browser-independent sign-in
+
 function say(id, text, ok) {
   const n = $(id);
   n.textContent = text;
   n.className = 'result' + (id !== 'authStatus' ? ' block' : '') + (text ? (ok ? ' ok' : ' err') : '');
 }
 
-// The ID that manifest.json's "key" produces. If the extension shows a different ID, the key isn't in effect.
-const PINNED_EXTENSION_ID = 'piciopmfaoeheehnlnoomkgfdbcgoijb';
+/** Chrome's built-in Google sign-in does not exist in these browsers. */
+async function detectBrowser() {
+  try {
+    if (navigator.brave && typeof navigator.brave.isBrave === 'function' && (await navigator.brave.isBrave())) return 'Brave';
+  } catch (_) {}
+  const ua = navigator.userAgent || '';
+  if (/\bEdg\//.test(ua)) return 'Edge';
+  if (/\bOPR\//.test(ua)) return 'Opera';
+  if (/Vivaldi/i.test(ua)) return 'Vivaldi';
+  return '';
+}
 
 function showDiagnostics(auth) {
   if (!auth) return;
   $('diagExt').textContent = auth.extensionId || '(unknown)';
   $('diagClient').textContent = auth.clientId || '(none)';
+  $('diagRedirect').textContent = auth.redirectUri || '(unavailable in this browser)';
+  $('diagWeb').textContent = auth.webConfigured ? 'yes' : 'no — add WEB_CLIENT_ID (docs/GOOGLE_SETUP.md, section 7)';
+  $('diagMode').textContent =
+    auth.mode === 'web' ? 'browser-independent sign-in' : webPreferred ? 'browser-independent sign-in (will be used on next sign-in)' : 'Chrome built-in sign-in';
   const note = $('diagExtNote');
   if (auth.extensionId && auth.extensionId !== PINNED_EXTENSION_ID) {
     note.hidden = false;
@@ -26,11 +45,18 @@ function showDiagnostics(auth) {
 
 async function refresh() {
   const [auth, s] = await Promise.all([ask({ type: 'AUTH_STATUS' }), chrome.storage.sync.get(DEFAULTS)]);
+  const signedIn = !!(auth && auth.signedIn);
+  webPreferred = !!browserName || !!(auth && auth.mode === 'web');
   showDiagnostics(auth);
 
-  $('devWarn').hidden = !(auth && auth.devSetupNeeded);
-  const signedIn = !!(auth && auth.signedIn);
+  $('braveNote').hidden = !browserName;
+  if (browserName) $('braveNote').textContent = `${browserName} detected — SolveSync will use the browser-independent Google sign-in.`;
+
+  $('devWarn').hidden = webPreferred || !(auth && auth.devSetupNeeded);
+  $('webWarn').hidden = !(webPreferred && auth && auth.webConfigured === false);
+
   $('signin').hidden = signedIn;
+  $('signinAlt').hidden = signedIn || webPreferred;
   $('signout').hidden = !signedIn;
   say('authStatus', signedIn ? '✅ Signed in' : '', true);
 
@@ -55,16 +81,17 @@ async function busy(btn, label, fn) {
   }
 }
 
-$('signin').addEventListener('click', () =>
-  busy($('signin'), 'Opening Google…', async () => {
-    const r = await ask({ type: 'AUTH_SIGNIN' });
-    await refresh(); // first, so it can't wipe the error message below
-    if (!r || !r.ok) {
-      say('authStatus', '❌ ' + ((r && r.error) || 'Sign-in failed'), false);
-      $('diag').open = true; // show the ID checklist right where the error happened
-    }
-  })
-);
+async function doSignIn(method) {
+  const r = await ask({ type: 'AUTH_SIGNIN', method });
+  await refresh(); // first, so it can't wipe the error message below
+  if (!r || !r.ok) {
+    say('authStatus', '❌ ' + ((r && r.error) || 'Sign-in failed'), false);
+    $('diag').open = true; // show the checklist right where the error happened
+  }
+}
+
+$('signin').addEventListener('click', () => busy($('signin'), 'Opening Google…', () => doSignIn(webPreferred ? 'web' : 'chrome')));
+$('signinAlt').addEventListener('click', () => busy($('signinAlt'), 'Opening Google…', () => doSignIn('web')));
 
 $('signout').addEventListener('click', () =>
   busy($('signout'), 'Disconnecting…', async () => {
@@ -97,15 +124,20 @@ $('create').addEventListener('click', () =>
   })
 );
 
-$('copyExt').addEventListener('click', async () => {
-  try {
-    await navigator.clipboard.writeText($('diagExt').textContent);
-    $('copyExt').textContent = 'Copied ✓';
-  } catch (_) {
-    $('copyExt').textContent = 'Select & copy';
-  }
-  setTimeout(() => ($('copyExt').textContent = 'Copy'), 1500);
-});
+function copyButton(btnId, sourceId) {
+  $(btnId).addEventListener('click', async () => {
+    const btn = $(btnId);
+    try {
+      await navigator.clipboard.writeText($(sourceId).textContent);
+      btn.textContent = 'Copied ✓';
+    } catch (_) {
+      btn.textContent = 'Select & copy';
+    }
+    setTimeout(() => (btn.textContent = 'Copy'), 1500);
+  });
+}
+copyButton('copyExt', 'diagExt');
+copyButton('copyRedirect', 'diagRedirect');
 
 for (const id of ['askApproach', 'notify']) {
   $(id).addEventListener('change', async () => {
@@ -115,4 +147,7 @@ for (const id of ['askApproach', 'notify']) {
   });
 }
 
-refresh();
+(async () => {
+  browserName = await detectBrowser();
+  await refresh();
+})();
